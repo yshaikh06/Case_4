@@ -5,6 +5,7 @@ from pydantic import ValidationError
 from models import SurveySubmission, StoredSurveyRecord
 from storage import append_json_line
 import hashlib
+from uuid import uuid4
 
 app = Flask(__name__)
 # Allow cross-origin requests so the static HTML can POST from localhost or file://
@@ -33,6 +34,7 @@ def submit_survey():
         payload["age"] = hash_value(str(payload["age"]))
     if "submission_id" not in payload or not payload["submission_id"]:
         now_str = datetime.now(timezone.utc).strftime("%Y%m%d%H")
+        email_hash = payload.get("email", str(uuid4()))
         payload["submission_id"] = hashlib.sha256((payload["email"] + now_str).encode()).hexdigest()
     try:
         submission = SurveySubmission(**payload)
