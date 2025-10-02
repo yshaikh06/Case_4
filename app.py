@@ -4,11 +4,13 @@ from flask_cors import CORS
 from pydantic import ValidationError
 from models import SurveySubmission, StoredSurveyRecord
 from storage import append_json_line
+import hashlib
 
 app = Flask(__name__)
 # Allow cross-origin requests so the static HTML can POST from localhost or file://
 CORS(app, resources={r"/v1/*": {"origins": "*"}})
-
+def hash_value(value: str) -> str:
+    return hashlib.sha256(value.encode()).hexdigest()
 @app.route("/ping", methods=["GET"])
 def ping():
     """Simple health check endpoint."""
@@ -23,7 +25,15 @@ def submit_survey():
     payload = request.get_json(silent=True)
     if payload is None:
         return jsonify({"error": "invalid_json", "detail": "Body must be application/json"}), 400
-
+    if "user_agent" not in payload or payload["user_agent"] is None:
+        payload["user_agent"] = request.headers.get("User-Agent")
+    if "email" in payload and payload["email"] is not None:
+        payload["email"] = hash_value(payload["email"])
+    if "age" in payload and payload["age"] is not None:
+        payload["age"] = hash_value(str(payload["age"]))
+    if "submission_id" not in payload or not payload["submission_id"]:
+        now_str = datetime.now(timezone.utc).strftime("%Y%m%d%H")
+        payload["submission_id"] = hashlib.sha256((payload["email"] + now_str).encode()).hexdigest()
     try:
         submission = SurveySubmission(**payload)
     except ValidationError as ve:

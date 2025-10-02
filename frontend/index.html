@@ -31,6 +31,11 @@
         <input id="age" name="age" type="number" min="13" max="120" required />
       </div>
 
+      <div class="field">
+        <label for="user_agent">User_Agent (Optional) <span aria-hidden="true">*</span></label>
+        <input id="user_agent" name="user_agent" type="text" />
+      </div>
+
       <div class="field checkbox">
         <input id="consent" name="consent" type="checkbox" required />
         <label for="consent">I consent to submitting this survey.</label>
@@ -78,6 +83,7 @@
         name: (fd.get("name") || "").toString(),
         email: (fd.get("email") || "").toString(),
         age: Number(fd.get("age")),
+	user_agent:(fd.get("user_agent")),
         consent: fd.get("consent") === "on",
         rating: Number(fd.get("rating")),
         comments: (fd.get("comments") || "").toString(),
@@ -85,7 +91,7 @@
       };
 
       try {
-        const res = await fetch("https://ood.hpc.virginia.edu/rnode/udc-aw32-1c0/37326/proxy/43147/v1/survey", {
+        const res = await fetch("https://ood.hpc.virginia.edu/rnode/udc-aw32-20c1/22921/proxy/35795/v1/survey", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
