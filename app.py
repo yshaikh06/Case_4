@@ -20,7 +20,7 @@ def ping():
         "utc_time": datetime.now(timezone.utc).isoformat()
     })
 
-@app.post("/v1/survey", methods=["POST"])
+@app.post("/v1/survey")
 def submit_survey():
     payload = request.get_json(silent=True)
     if payload is None:
