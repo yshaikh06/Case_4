@@ -10,8 +10,10 @@ from uuid import uuid4
 app = Flask(__name__)
 # Allow cross-origin requests so the static HTML can POST from localhost or file://
 CORS(app, resources={r"/v1/*": {"origins": "*"}})
+
 def hash_value(value: str) -> str:
-    return hashlib.sha256(value.encode()).hexdigest()
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
 @app.route("/ping", methods=["GET"])
 def ping():
     """Simple health check endpoint."""
@@ -24,27 +26,30 @@ def ping():
 @app.post("/v1/survey")
 def submit_survey():
     payload = request.get_json(silent=True)
+
     if payload is None:
-        return jsonify({"error": "invalid_json", "detail": "Body must be application/json"}), 400
-    if "user_agent" not in payload or payload["user_agent"] is None:
-        payload["user_agent"] = request.headers.get("User-Agent")
-    if "email" in payload and payload["email"] is not None:
-        payload["email"] = hash_value(payload["email"])
-    if "age" in payload and payload["age"] is not None:
-        payload["age"] = hash_value(str(payload["age"]))
-    if not submission.submission_id:
-        now_str = datetime.now(timezone.utc).strftime("%Y%m%d%H")
-        email_or_uuid = submission.email or str(uuid4())
-        submission_id = hashlib.sha256((email_or_uuid + now_str).encode()).hexdigest()
-    else:
-        submission_id = submission.submission_id
+        return jsonify({"error": "invalid_json", "detail": "Body must be application/json"}), 400   
+
     try:
         submission = SurveySubmission(**payload)
     except ValidationError as ve:
         return jsonify({"error": "validation_error", "detail": ve.errors()}), 422
 
+    email_normal = submission.email.strip().lower()
+    email_hash = hash_value(email_normal)
+    age_hash = hash_value(str(submission.age))
+    hour_stamp = datetime.now(timezone.utc).strftime("%Y%m%d%H")
+    submission_id = submission.submission_id or hash_value(email_normal + hour_stamp)
+
     record = StoredSurveyRecord(
-        **submission.dict(),
+        name = submission.name,
+        email = email_hash,
+        age = age_hash,
+        consent = submission.consent,
+        rating = submission.rating,
+        comments = submission.comments,
+        user_agent = submission.user_agent,
+        submission_id = submission_id,
         email=hash_value(submission.email),
         age=hash_value(str(submission.age)),
         submission_id=submission_id,
