@@ -32,10 +32,12 @@ def submit_survey():
         payload["email"] = hash_value(payload["email"])
     if "age" in payload and payload["age"] is not None:
         payload["age"] = hash_value(str(payload["age"]))
-    if "submission_id" not in payload or not payload["submission_id"]:
+    if not submission.submission_id:
         now_str = datetime.now(timezone.utc).strftime("%Y%m%d%H")
-        email_hash = payload.get("email", str(uuid4()))
-        payload["submission_id"] = hashlib.sha256((payload["email"] + now_str).encode()).hexdigest()
+        email_or_uuid = submission.email or str(uuid4())
+        submission_id = hashlib.sha256((email_or_uuid + now_str).encode()).hexdigest()
+    else:
+        submission_id = submission.submission_id
     try:
         submission = SurveySubmission(**payload)
     except ValidationError as ve:
@@ -43,6 +45,9 @@ def submit_survey():
 
     record = StoredSurveyRecord(
         **submission.dict(),
+        email=hash_value(submission.email),
+        age=hash_value(str(submission.age)),
+        submission_id=submission_id,
         received_at=datetime.now(timezone.utc),
         ip=request.headers.get("X-Forwarded-For", request.remote_addr or "")
     )
