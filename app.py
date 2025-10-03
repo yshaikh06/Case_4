@@ -7,13 +7,12 @@ from storage import append_json_line
 import hashlib
 from uuid import uuid4
 
-
-def hash_value(value: str) -> str:
-    return hashlib.sha256(value.encode("utf-8")).hexdigest()
-    
 app = Flask(__name__)
 # Allow cross-origin requests so the static HTML can POST from localhost or file://
 CORS(app, resources={r"/v1/*": {"origins": "*"}})
+
+def hash_value(value: str) -> str:
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()
 
 @app.route("/ping", methods=["GET"])
 def ping():
@@ -27,9 +26,8 @@ def ping():
 @app.post("/v1/survey")
 def submit_survey():
     payload = request.get_json(silent=True)
-
     if payload is None:
-        return jsonify({"error": "invalid_json", "detail": "Body must be application/json"}), 400   
+        return jsonify({"error": "invalid_json", "detail": "Body must be application/json"}), 400
 
     try:
         submission = SurveySubmission(**payload)
@@ -51,9 +49,6 @@ def submit_survey():
         comments = submission.comments,
         user_agent = submission.user_agent,
         submission_id = submission_id,
-       # email=hash_value(submission.email),
-       # age=hash_value(str(submission.age)),
-        submission_id=submission_id,
         received_at=datetime.now(timezone.utc),
         ip=request.headers.get("X-Forwarded-For", request.remote_addr or "")
     )
